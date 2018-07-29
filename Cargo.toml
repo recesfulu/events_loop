@@ -2,5 +2,11 @@
 name = "events_loop"
 version = "0.1.0"
 authors = ["recesfulu <recesfulu@srchub.io>"]
+description = "Generic events loop interface, for libraries working with event loops"
+repository = "https://srchub.io/recesfulu/events_loop"
+keywords = ["windowing","window","system","event","events"]
+categories = ["os", "gui"]
+license = "Apache-2.0"
+documentation = "https://docs.rs/events_loop"
 
 [dependencies]
