@@ -27,8 +27,7 @@ pub enum ControlFlow {
 pub trait EventsLoop<Event> {
     /// Fetches all the events that are pending, calls the callback function for each of them,
     /// and returns.
-    fn poll_events<F>(&mut self, callback: F)
-        where F: FnMut(Event);
+    fn poll_events(&mut self, callback: &mut dyn FnMut(Event));
 
     /// Calls `callback` every time an event is received. If no event is available, sleeps the
     /// current thread and waits for an event. If the callback returns `ControlFlow::Break` then
@@ -38,12 +37,11 @@ pub trait EventsLoop<Event> {
     ///
     /// The callback is run after *every* event, so if its execution time is non-trivial the event queue may not empty
     /// at a sufficient rate. Rendering in the callback with vsync enabled **will** cause significant lag.
-    fn run<F>(&mut self, callback: F)
-        where F: FnMut(Event) -> ControlFlow;
+    fn run(&mut self, callback: &mut dyn FnMut(Event) -> ControlFlow);
 
     /// Creates an `EventsLoopProxy` that can be used to wake up the `EventsLoop` from another
     /// thread.
-    fn create_proxy(&self) -> Box<EventsLoopProxy>;
+    fn create_proxy(&self) -> Box<dyn EventsLoopProxy>;
 }
 /// Used to wake up the `EventsLoop` from another thread.
 pub trait EventsLoopProxy : Send {
@@ -54,11 +52,11 @@ pub trait EventsLoopProxy : Send {
     /// Returns an `Err` if the associated `EventsLoop` no longer exists.
     fn wakeup(&self) -> Result<(), EventsLoopClosed>;
 
-    fn clone(&self) -> Box<EventsLoopProxy>;
+    fn clone(&self) -> Box<dyn EventsLoopProxy>;
 }
 
-impl Clone for Box<EventsLoopProxy> {
-    fn clone(&self) -> Box<EventsLoopProxy> {
+impl Clone for Box<dyn EventsLoopProxy> {
+    fn clone(&self) -> Box<dyn EventsLoopProxy> {
         use std::ops::Deref;
         self.deref().clone()
     }    
@@ -71,7 +69,7 @@ pub struct EventsLoopClosed;
 
 impl std::fmt::Display for EventsLoopClosed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", std::error::Error::description(self))
+        write!(f, "{}", self.to_string())
     }
 }
 
@@ -92,22 +90,18 @@ mod tests {
     struct Loop;
 
     impl ::EventsLoop<Events> for Loop {
-        fn poll_events<F>(&mut self, callback: F)
-            where F: FnMut(Events) {
-            let mut c = callback;
-            c(Events::A);
-            c(Events::B);
+        fn poll_events(&mut self, callback: &mut dyn FnMut(Events)) {
+            callback(Events::A);
+            callback(Events::B);
         }
 
-        fn run<F>(&mut self, callback: F)
-            where F: FnMut(Events) -> ::ControlFlow {
-                let mut c = callback;
-                while c(Events::C) == ::ControlFlow::Continue {
+        fn run(&mut self, callback: &mut dyn FnMut(Events) -> ::ControlFlow){
+                while callback(Events::C) == ::ControlFlow::Continue {
 
                 }
             }
 
-        fn create_proxy(&self) -> Box<::EventsLoopProxy> {
+        fn create_proxy(&self) -> Box<dyn (::EventsLoopProxy)> {
             unimplemented!();
         }
 
@@ -117,7 +111,7 @@ mod tests {
     fn it_works() {
         use ::EventsLoop;
         let mut l = Loop{};
-        l.poll_events(|e| println!("{:?}", e));
-        l.run(|e| {println!("{:?}", e); ::ControlFlow::Break});
+        l.poll_events(&mut |e| println!("{:?}", e));
+        l.run(&mut |e| {println!("{:?}", e); ::ControlFlow::Break});
     }
 }
