@@ -1,6 +1,6 @@
 [package]
 name = "events_loop"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["recesfulu <recesfulu@gmail.com>"]
 description = "Generic events loop interface, for libraries working with event loops"
 repository = "https://github.com/recesfulu/events_loop.git"
